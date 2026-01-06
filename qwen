@@ -1,0 +1,31 @@
+window
+	// Window style - remove WS_OVERLAPPEDWINDOW and use WS_POPUP for fullscreen
+	DWORD window_style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+
+	// Create window
+	m_Hwnd = CreateWindow(wc.lpszClassName, window_name.c_str(), window_style, 0, 0, width, height, NULL, NULL, hInstance, this);
+	if (m_Hwnd == NULL)
+	{
+		MessageBox(NULL, L"CreateWindow Failed", L"Error", MB_OK);
+		throw std::exception();
+	}
+
+	// Set window position and size for fullscreen
+	if (fullscreen)
+	{
+		SetWindowPos(m_Hwnd, HWND_TOP, 0, 0, width, height, SWP_FRAMECHANGED);
+	}
+
+	// Show window
+	int cmd_show = (fullscreen ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
+	ShowWindow(m_Hwnd, cmd_show);
+
+app
+
+	// Get screen resolution
+	int window_width = GetSystemMetrics(SM_CXSCREEN);
+	int window_height = GetSystemMetrics(SM_CYSCREEN);
+
+	// Create window in fullscreen mode
+	m_Window = std::make_unique<Window>(this);
+	m_WindowCreated = m_Window->Create(m_ApplicationTitle, window_width, window_height, true);
