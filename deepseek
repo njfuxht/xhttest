@@ -1,0 +1,42 @@
+e - remove menu bar and use appropriate style for fullscreen
+	DWORD window_style;
+	if (fullscreen)
+	{
+		// For true fullscreen: WS_POPUP removes title bar, borders, and menu
+		window_style = WS_POPUP;
+	}
+	else
+	{
+		// For windowed mode: remove menu bar (WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+		window_style = WS_OVERLAPPEDWINDOW & ~WS_SYSMENU;
+	}
+
+	// Create window
+	m_Hwnd = CreateWindow(wc.lpszClassName, window_name.c_str(), window_style, 
+						  0, 0, width, height, NULL, NULL, hInstance, this);
+	if (m_Hwnd == NULL)
+	{
+		MessageBox(NULL, L"CreateWindow Failed", L"Error", MB_OK);
+		throw std::exception();
+	}
+
+	// For fullscreen: set window position and size to cover entire screen
+	if (fullscreen)
+	{
+		SetWindowPos(m_Hwnd, HWND_TOP, 0, 0, width, height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+	}
+
+	// Show window
+	int cmd_show = (fullscreen ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
+	ShowWindow(m_Hwnd, cmd_show);
+
+
+///app
+
+	// Get screen resolution for fullscreen
+	int screen_width = GetSystemMetrics(SM_CXSCREEN);
+	int screen_height = GetSystemMetrics(SM_CYSCREEN);
+
+	// Create window
+	m_Window = std::make_unique<Window>(this);
+	m_WindowCreated = m_Window->Create(m_ApplicationTitle, screen_width, screen_height, true);
