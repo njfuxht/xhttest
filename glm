@@ -1,12 +1,12 @@
 Application::Application()
 {
 	// Get screen resolution for fullscreen
-	int screen_width = GetSystemMetrics(SM_CXSCREEN);
-	int screen_height = GetSystemMetrics(SM_CYSCREEN);
+	int window_width = GetSystemMetrics(SM_CXSCREEN);
+	int window_height = GetSystemMetrics(SM_CYSCREEN);
 
-	// Create window in fullscreen mode
+	// Create window with fullscreen enabled
 	m_Window = std::make_unique<Window>(this);
-	m_WindowCreated = m_Window->Create(m_ApplicationTitle, screen_width, screen_height, true);
+	m_WindowCreated = m_Window->Create(m_ApplicationTitle, window_width, window_height, true);
 
 	// Create renderer
 	m_Renderer = std::make_unique<Renderer>(this);
@@ -43,29 +43,35 @@ bool Window::Create(const std::string& title, int width, int height, bool fullsc
 		throw std::exception();
 	}
 
-	// Determine window style based on fullscreen mode
-	DWORD window_style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
-
 	// Create window
-	m_Hwnd = CreateWindow(wc.lpszClassName, window_name.c_str(), window_style,
-		CW_USEDEFAULT, CW_USEDEFAULT, width, height, NULL, NULL, hInstance, this);
+	DWORD window_style = WS_OVERLAPPEDWINDOW;
+	int window_x = CW_USEDEFAULT;
+	int window_y = CW_USEDEFAULT;
+
+	// For fullscreen, use popup style and position at (0, 0)
+	if (fullscreen)
+	{
+		window_style = WS_POPUP;
+		window_x = 0;
+		window_y = 0;
+	}
+
+	m_Hwnd = CreateWindow(wc.lpszClassName, window_name.c_str(), window_style, window_x, window_y, width, height, NULL, NULL, hInstance, this);
 	if (m_Hwnd == NULL)
 	{
 		MessageBox(NULL, L"CreateWindow Failed", L"Error", MB_OK);
 		throw std::exception();
 	}
 
-	// For fullscreen mode, position window to cover entire screen
+	// For fullscreen, set window to cover entire screen
 	if (fullscreen)
 	{
-		// Set window position to cover entire screen (0,0 to screen_width, screen_height)
 		SetWindowPos(m_Hwnd, HWND_TOP, 0, 0, width, height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 	}
-	else
-	{
-		// Show window normally for windowed mode
-		ShowWindow(m_Hwnd, SW_SHOWNORMAL);
-	}
+
+	// Show window
+	int cmd_show = (fullscreen ? SW_MAXIMIZE : SW_SHOWNORMAL);
+	ShowWindow(m_Hwnd, cmd_show);
 
 	return true;
 }
