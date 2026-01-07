@@ -1,0 +1,21 @@
+Application::Application()
+{
+	// Get screen resolution for fullscreen mode
+	const int window_width = GetSystemMetrics(SM_CXSCREEN);
+	const int window_height = GetSystemMetrics(SM_CYSCREEN);
+
+	// Create window in fullscreen mode
+	m_Window = std::make_unique<Window>(this);
+	m_WindowCreated = m_Window->Create(m_ApplicationTitle, window_width, window_height, true);
+
+	// Create renderer
+	m_Renderer = std::make_unique<Renderer>(this);
+	m_Renderer->Create();
+
+	// Create shader
+	m_Shader = std::make_unique<Shader>(m_Renderer.get());
+	m_Shader->Load();
+
+	// Create camera
+	m_Camera = std::make_unique<Camera>(window_width, window_height);
+}
