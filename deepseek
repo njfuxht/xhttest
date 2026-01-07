@@ -1,42 +1,80 @@
-e - remove menu bar and use appropriate style for fullscreen
-	DWORD window_style;
-	if (fullscreen)
+bool Window::Create(const std::string& title, int width, int height, bool fullscreen)
+{
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+	std::wstring window_name = ConvertToWString(title);
+
+	// Setup window class
+	WNDCLASS wc = {};
+	wc.style = CS_VREDRAW | CS_HREDRAW;
+	wc.lpfnWndProc = ::MainWndProc;
+	wc.hInstance = hInstance;
+	wc.hIcon = LoadIcon(0, IDI_APPLICATION);
+	wc.hCursor = LoadCursor(0, IDC_ARROW);
+	wc.lpszClassName = window_name.c_str();
+
+	if (!RegisterClass(&wc))
 	{
-		// For true fullscreen: WS_POPUP removes title bar, borders, and menu
-		window_style = WS_POPUP;
-	}
-	else
-	{
-		// For windowed mode: remove menu bar (WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-		window_style = WS_OVERLAPPEDWINDOW & ~WS_SYSMENU;
+		MessageBox(NULL, L"RegisterClass Failed", L"Error", MB_OK);
+		throw std::exception();
 	}
 
-	// Create window
-	m_Hwnd = CreateWindow(wc.lpszClassName, window_name.c_str(), window_style, 
-						  0, 0, width, height, NULL, NULL, hInstance, this);
+	// Create window with appropriate style
+	DWORD window_style = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+	m_Hwnd = CreateWindow(wc.lpszClassName, window_name.c_str(), window_style, CW_USEDEFAULT, CW_USEDEFAULT, width, height, NULL, NULL, hInstance, this);
 	if (m_Hwnd == NULL)
 	{
 		MessageBox(NULL, L"CreateWindow Failed", L"Error", MB_OK);
 		throw std::exception();
 	}
 
-	// For fullscreen: set window position and size to cover entire screen
+	// For fullscreen mode, set window to cover entire screen
 	if (fullscreen)
 	{
-		SetWindowPos(m_Hwnd, HWND_TOP, 0, 0, width, height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+		// Remove window borders and menu
+		SetWindowLong(m_Hwnd, GWL_STYLE, WS_POPUP);
+		
+		// Get monitor information
+		HMONITOR hMonitor = MonitorFromWindow(m_Hwnd, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO monitorInfo = {};
+		monitorInfo.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfo(hMonitor, &monitorInfo);
+		
+		// Set window position and size to cover entire monitor
+		SetWindowPos(m_Hwnd, HWND_TOP, 
+			monitorInfo.rcMonitor.left, 
+			monitorInfo.rcMonitor.top,
+			monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+			monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
 	}
 
 	// Show window
 	int cmd_show = (fullscreen ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
 	ShowWindow(m_Hwnd, cmd_show);
 
+	return true;
+}
+
 
 ///app
-
-	// Get screen resolution for fullscreen
+Application::Application()
+{
+	// Get screen resolution for fullscreen mode
 	int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 
-	// Create window
+	// Create window in fullscreen mode
 	m_Window = std::make_unique<Window>(this);
 	m_WindowCreated = m_Window->Create(m_ApplicationTitle, screen_width, screen_height, true);
+
+	// Create renderer
+	m_Renderer = std::make_unique<Renderer>(this);
+	m_Renderer->Create();
+
+	// Create shader
+	m_Shader = std::make_unique<Shader>(m_Renderer.get());
+	m_Shader->Load();
+
+	// Create camera
+	m_Camera = std::make_unique<Camera>(window_width, window_height);
+}
